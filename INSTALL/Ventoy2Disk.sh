@@ -1,24 +1,35 @@
 #!/bin/sh
 
+if ! [ -f ./tool/ventoy_lib.sh ]; then
+    if [ -f ${0%Ventoy2Disk.sh}/tool/ventoy_lib.sh ]; then
+        cd ${0%Ventoy2Disk.sh}    
+    fi
+fi
+
 if [ -f ./ventoy/version ]; then
     curver=$(cat ./ventoy/version) 
 fi
 
+OLDDIR=$(pwd)
+
+if uname -a | egrep -q 'aarch64|arm64'; then
+    export TOOLDIR=aarch64
+elif uname -a | egrep -q 'x86_64|amd64'; then
+    export TOOLDIR=x86_64
+else
+    export TOOLDIR=i386
+fi
+export PATH=./tool/$TOOLDIR:$PATH
+
+
 echo ''
 echo '**********************************************'
-echo "      Ventoy: $curver"
+echo "      Ventoy: $curver  $TOOLDIR"
 echo "      longpanda admin@ventoy.net"
 echo "      https://www.ventoy.net"
 echo '**********************************************'
 echo ''
 
-OLDDIR=$PWD
-
-if ! [ -f ./tool/xzcat ]; then
-    if [ -f ${0%Ventoy2Disk.sh}/tool/xzcat ]; then
-        cd ${0%Ventoy2Disk.sh}    
-    fi
-fi
 
 if ! [ -f ./boot/boot.img ]; then
     if [ -d ./grub ]; then
@@ -29,28 +40,31 @@ if ! [ -f ./boot/boot.img ]; then
     exit 1
 fi
 
-echo "############# Ventoy2Disk $* ################" >> ./log.txt
+echo "############# Ventoy2Disk $* [$TOOLDIR] ################" >> ./log.txt
+date >> ./log.txt
 
 #decompress tool
-if ! [ -f ./tool/ash ]; then
-    cd tool
-    chmod +x ./xzcat
+if [ -f ./tool/$TOOLDIR/ash ]; then
+    echo "no need to decompress tools" >> ./log.txt
+else
+    cd ./tool/$TOOLDIR
+    
+    [ -f ./xzcat ] && chmod +x ./xzcat
+    
     for file in $(ls *.xz); do
-        ./xzcat $file > ${file%.xz}
-        chmod +x ${file%.xz}
+        xzcat $file > ${file%.xz}
+        [ -f ./$file ] && rm -f ./$file
     done
-    cd ../
-
-    if ! [ -f ./tool/ash ]; then
-        echo 'Failed to decompress tools ...'
-        if [ -n "$OLDDIR" ]; then 
-            cd $OLDDIR
-        fi
-        exit 1
-    fi
+    cd $OLDDIR
+    
+    chmod +x -R ./tool/$TOOLDIR
 fi
 
-./tool/ash ./tool/VentoyWorker.sh $*
+if [ -f /bin/bash ]; then
+    /bin/bash ./tool/VentoyWorker.sh $*
+else
+    ash ./tool/VentoyWorker.sh $*
+fi
 
 if [ -n "$OLDDIR" ]; then 
     cd $OLDDIR
