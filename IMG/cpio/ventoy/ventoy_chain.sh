@@ -37,7 +37,6 @@ for i in $vtcmdline; do
     fi
 done
 
-
 ####################################################################
 #                                                                  #
 # Step 2 : Do OS specific hook                                     #
@@ -311,6 +310,12 @@ ventoy_get_os_type() {
     
     if $GREP -q 'austrumi' /proc/version; then
         echo 'austrumi'; return
+    fi
+    
+    if [ -f /DISTRO_SPECS ]; then
+        if $GREP -q '[Pp]uppy' /DISTRO_SPECS; then
+            echo 'debian'; return
+        fi
     fi
     
     echo "default"

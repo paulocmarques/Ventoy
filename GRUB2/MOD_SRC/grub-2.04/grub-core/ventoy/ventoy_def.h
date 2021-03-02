@@ -163,6 +163,8 @@ typedef struct ventoy_iso9660_vd
     grub_uint8_t res;
     char sys[32];
     char vol[32];
+    grub_uint8_t res2[8];
+    grub_uint32_t space;
 }ventoy_iso9660_vd;
 
 #pragma pack()
@@ -203,6 +205,7 @@ typedef struct img_iterator_node
     img_info **tail;
     char dir[400];
     int dirlen;
+    int level;
     int isocnt;
     int done;
     int select;
@@ -799,6 +802,19 @@ typedef struct menu_class
     struct menu_class *next;
 }menu_class;
 
+#define vtoy_custom_boot_image_file  0
+#define vtoy_custom_boot_directory   1
+
+typedef struct custom_boot
+{
+    int  type;
+    int  pathlen;
+    char path[256];
+    char cfg[256];
+
+    struct custom_boot *next;
+}custom_boot;
+
 #define vtoy_max_replace_file_size  (2 * 1024 * 1024)
 typedef struct conf_replace
 {
@@ -867,7 +883,11 @@ extern int g_ventoy_iso_uefi_drv;
 extern int g_ventoy_case_insensitive;
 extern grub_uint8_t g_ventoy_chain_type;
 extern int g_vhdboot_enable;
+
+#define VENTOY_IMG_WHITE_LIST   1
+#define VENTOY_IMG_BLACK_LIST   2
 extern int g_plugin_image_list;
+
 extern ventoy_gpt_info *g_ventoy_part_info;
 extern grub_uint64_t g_conf_replace_offset;
 extern grub_uint64_t g_svd_replace_offset;
@@ -875,6 +895,7 @@ extern conf_replace *g_conf_replace_node;
 extern grub_uint8_t *g_conf_replace_new_buf;
 extern int g_conf_replace_new_len;
 extern int g_conf_replace_new_len_align;
+extern grub_uint64_t g_ventoy_disk_size;
 
 #define ventoy_unix_fill_virt(new_data, new_len) \
 { \
@@ -924,6 +945,8 @@ int ventoy_get_disk_guid(const char *filename, grub_uint8_t *guid, grub_uint8_t 
 grub_err_t ventoy_cmd_unix_reset(grub_extcmd_context_t ctxt, int argc, char **args);
 grub_err_t ventoy_cmd_unix_replace_conf(grub_extcmd_context_t ctxt, int argc, char **args);
 grub_err_t ventoy_cmd_unix_replace_ko(grub_extcmd_context_t ctxt, int argc, char **args);
+grub_err_t ventoy_cmd_unix_fill_image_desc(grub_extcmd_context_t ctxt, int argc, char **args);
+grub_err_t ventoy_cmd_unix_gzip_newko(grub_extcmd_context_t ctxt, int argc, char **args);
 grub_err_t ventoy_cmd_unix_freebsd_ver(grub_extcmd_context_t ctxt, int argc, char **args);
 grub_err_t ventoy_cmd_parse_freenas_ver(grub_extcmd_context_t ctxt, int argc, char **args);
 int ventoy_check_device_result(int ret);
@@ -934,6 +957,11 @@ grub_err_t ventoy_cmd_patch_vhdboot(grub_extcmd_context_t ctxt, int argc, char *
 grub_err_t ventoy_cmd_raw_chain_data(grub_extcmd_context_t ctxt, int argc, char **args);
 grub_err_t ventoy_cmd_get_vtoy_type(grub_extcmd_context_t ctxt, int argc, char **args);
 int ventoy_check_password(const vtoy_password *pwd, int retry);
+int ventoy_gzip_compress(void *mem_in, int mem_in_len, void *mem_out, int mem_out_len);
+grub_uint64_t ventoy_get_part1_size(ventoy_gpt_info *gpt);
+int ventoy_plugin_add_custom_boot(const char *vcfgpath);
+const char * ventoy_plugin_get_custom_boot(const char *isopath);
+grub_err_t ventoy_cmd_dump_custom_boot(grub_extcmd_context_t ctxt, int argc, char **args);
 
 #endif /* __VENTOY_DEF_H__ */
 
